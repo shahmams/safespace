@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class WritePage extends StatefulWidget {
   const WritePage({super.key});
@@ -9,6 +11,63 @@ class WritePage extends StatefulWidget {
 
 class _WritePageState extends State<WritePage> {
   bool wantCounsellor = false;
+  bool isLoading = false;
+
+  final TextEditingController reportController = TextEditingController();
+
+  Future<void> submitReport() async {
+    if (reportController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please write something')),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    final response = await http.post(
+      Uri.parse(
+        'https://safespace-backend-z4d6.onrender.com/report',
+      ),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'report_text': reportController.text,
+        'support_requested': wantCounsellor,
+      }),
+    );
+
+    setState(() => isLoading = false);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Report Submitted'),
+          content: Text(
+            'Your case ID is:\n\n${data['case_id']}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                reportController.clear();
+                wantCounsellor = false;
+                setState(() {});
+                Navigator.pop(context);
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Submission failed')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,10 +112,11 @@ class _WritePageState extends State<WritePage> {
                     border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const TextField(
+                  child: TextField(
+                    controller: reportController,
                     maxLines: null,
                     expands: true,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'Write here...',
                       border: InputBorder.none,
                     ),
@@ -124,18 +184,18 @@ class _WritePageState extends State<WritePage> {
                   width: double.infinity,
                   height: 44,
                   child: ElevatedButton(
-                    onPressed: () {
-                      debugPrint(
-                        'Counsellor requested: $wantCounsellor',
-                      );
-                    },
+                    onPressed: isLoading ? null : submitReport,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF6B86A4),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
                     ),
-                    child: const Text('Submit'),
+                    child: isLoading
+                        ? const CircularProgressIndicator(
+                      color: Colors.white,
+                    )
+                        : const Text('Submit'),
                   ),
                 ),
               ],

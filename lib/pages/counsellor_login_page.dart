@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
-import 'counsellor_login_page.dart';
+import 'counsellor_home_page.dart';
 
-class AdminLoginPage extends StatelessWidget {
-  const AdminLoginPage({super.key});
+class CounsellorLoginPage extends StatelessWidget {
+  const CounsellorLoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F2F7),
+      appBar: AppBar(
+        title: const Text('Counsellor Login'),
+        centerTitle: true,
+      ),
       body: Center(
         child: Card(
           elevation: 6,
@@ -22,7 +26,7 @@ class AdminLoginPage extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'Admin Login',
+                    'Counsellor Login',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -49,34 +53,18 @@ class AdminLoginPage extends StatelessWidget {
 
                   ElevatedButton(
                     onPressed: () {
-                      // Admin login logic
+                      // ✅ Redirect to Counsellor Dashboard
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CounsellorHomePage(),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 45),
                     ),
                     child: const Text('Login'),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 👇 Counsellor Login link
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CounsellorLoginPage(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      'Counsellor Login',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w500,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
                   ),
                 ],
               ),
