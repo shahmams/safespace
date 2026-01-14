@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'heatmap_page.dart';
+import 'admin_tabs/active_reports_tab.dart';
 
 class AdminHomePage extends StatelessWidget {
   const AdminHomePage({super.key});
@@ -18,7 +19,7 @@ class AdminHomePage extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context); // close dialog
-              Navigator.pop(context); // logout (go back)
+              Navigator.pop(context); // logout
             },
             child: const Text(
               'Logout',
@@ -32,73 +33,98 @@ class AdminHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _showLogoutDialog(context),
+    return DefaultTabController(
+      length: 3, // Active, Past, Spam
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Admin Dashboard'),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () => _showLogoutDialog(context),
+            ),
+          ],
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Active'),
+              Tab(text: 'Past'),
+              Tab(text: 'Spam'),
+            ],
           ),
-        ],
-      ),
-
-      body: const Center(
-        child: Text(
-          'Admin Dashboard',
-          style: TextStyle(fontSize: 24),
         ),
-      ),
 
-      // Bottom buttons (Home + Heatmaps)
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-          boxShadow: [
-            BoxShadow(color: Colors.black12, blurRadius: 6),
-          ],
-        ),
-        child: Row(
+        // ---------------- TAB CONTENT ----------------
+        body: const TabBarView(
           children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.home),
-                label: const Text('Home'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueGrey,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+            // ✅ ACTIVE REPORTS (CONNECTED)
+            ActiveReportsTab(),
+
+            // ⏳ PAST REPORTS (later)
+            Center(
+              child: Text(
+                'Past Reports',
+                style: TextStyle(fontSize: 18),
               ),
             ),
 
-            const SizedBox(width: 12),
-
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const HeatmapPage(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.map),
-                label: const Text('Heatmaps'),
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+            // ⏳ SPAM REPORTS (later)
+            Center(
+              child: Text(
+                'Spam Reports',
+                style: TextStyle(fontSize: 18),
               ),
             ),
           ],
+        ),
+
+        // ---------------- BOTTOM BAR ----------------
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            boxShadow: [
+              BoxShadow(color: Colors.black12, blurRadius: 6),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {}, // already on home
+                  icon: const Icon(Icons.home),
+                  label: const Text('Home'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueGrey,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const HeatmapPage(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.map),
+                  label: const Text('Heatmaps'),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
