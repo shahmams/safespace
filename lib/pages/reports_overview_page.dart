@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:safespacee/utils/report_storage.dart';
+import 'package:http/http.dart' as http;
+import '../utils/anon_storage.dart';
 import 'write_page.dart';
 
 class ReportsOverviewPage extends StatefulWidget {
@@ -21,14 +23,32 @@ class _ReportsOverviewPageState extends State<ReportsOverviewPage> {
   }
 
   Future<void> _loadReports() async {
-    final reports = await ReportStorage.getReports();
+    try {
+      final anonId = await AnonStorage.getAnonId();
 
-    activeReports =
-        reports.where((r) => r["status"] == "ACTIVE").toList();
+      final response = await http.get(
+        Uri.parse(
+          'https://safespace-backend-z4d6.onrender.com/reports/by-anon/$anonId',
+        ),
+      );
 
-    pastReports =
-        reports.where((r) => r["status"] == "CLOSED").toList();
+      final data = jsonDecode(response.body);
+      final List reports = data['reports'];
 
+      activeReports = reports
+          .where((r) => r['case_status'] == 'ACTIVE')
+          .cast<Map<String, dynamic>>()
+          .toList();
+
+      pastReports = reports
+          .where((r) => r['case_status'] == 'CLOSED')
+          .cast<Map<String, dynamic>>()
+          .toList();
+    } catch (e) {
+      debugPrint("Failed to load reports: $e");
+    }
+
+    if (!mounted) return;
     setState(() {
       loading = false;
     });
@@ -110,7 +130,7 @@ class _ReportsOverviewPageState extends State<ReportsOverviewPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ListTile(
-                title: Text("Reference ID: ${report["caseId"]}"),
+                title: Text("Reference ID: ${report["case_id"]}"),
                 subtitle: const Text("Your report is being processed"),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
@@ -139,7 +159,7 @@ class _ReportsOverviewPageState extends State<ReportsOverviewPage> {
           ...pastReports.map((report) {
             return Card(
               child: ListTile(
-                title: Text("Reference ID: ${report["caseId"]}"),
+                title: Text("Reference ID: ${report["case_id"]}"),
                 subtitle: const Text("Status: Closed"),
                 trailing: TextButton(
                   onPressed: () {

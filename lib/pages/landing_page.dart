@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'write_page.dart';
 import 'admin_login_page.dart';
 import 'reports_overview_page.dart';
-import 'package:safespacee/utils/report_storage.dart';
+import '../utils/anon_storage.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -11,37 +11,22 @@ class LandingPage extends StatefulWidget {
   State<LandingPage> createState() => _LandingPageState();
 }
 
-class _LandingPageState extends State<LandingPage>
-    with WidgetsBindingObserver {
-  bool hasReported = false;
+class _LandingPageState extends State<LandingPage> {
+  bool hasAnon = false;
   bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _checkReportStatus();
+    _checkAnon();
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  // 🔹 Called when app resumes / reloads
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _checkReportStatus();
-    }
-  }
-
-  Future<void> _checkReportStatus() async {
-    final reported = await ReportStorage.hasReported();
+  Future<void> _checkAnon() async {
+    final anonId = await AnonStorage.getAnonId();
     if (!mounted) return;
+
     setState(() {
-      hasReported = reported;
+      hasAnon = anonId.isNotEmpty;
       loading = false;
     });
   }
@@ -96,7 +81,7 @@ class _LandingPageState extends State<LandingPage>
                 height: 48,
                 child: ElevatedButton(
                   onPressed: () {
-                    if (hasReported) {
+                    if (hasAnon) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -119,7 +104,7 @@ class _LandingPageState extends State<LandingPage>
                     ),
                   ),
                   child: Text(
-                    hasReported ? 'Continue' : 'Start',
+                    hasAnon ? 'Continue' : 'Start',
                     style: const TextStyle(fontSize: 18),
                   ),
                 ),

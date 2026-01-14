@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:safespacee/utils/report_storage.dart';
+import '../utils/anon_storage.dart';
 import 'reports_overview_page.dart';
-
 
 class WritePage extends StatefulWidget {
   const WritePage({super.key});
@@ -29,12 +28,16 @@ class _WritePageState extends State<WritePage> {
     setState(() => isLoading = true);
 
     try {
+      // 🔹 Get anonymous ID
+      final anonId = await AnonStorage.getAnonId();
+
       final response = await http.post(
         Uri.parse(
           'https://safespace-backend-z4d6.onrender.com/report',
         ),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
+          'anon_id': anonId,
           'report_text': reportController.text.trim(),
           'support_requested': wantCounsellor,
         }),
@@ -45,9 +48,6 @@ class _WritePageState extends State<WritePage> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final caseId = data['case_id'];
-
-        // ✅ Save case ID locally
-        await ReportStorage.saveNewReport(caseId);
 
         showDialog(
           context: context,
@@ -72,7 +72,6 @@ class _WritePageState extends State<WritePage> {
                       builder: (_) => const ReportsOverviewPage(),
                     ),
                   );
-
                 },
                 child: const Text('OK'),
               ),
