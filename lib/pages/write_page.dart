@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:safespacee/utils/report_storage.dart';
+import 'reports_overview_page.dart';
+
 
 class WritePage extends StatefulWidget {
   const WritePage({super.key});
@@ -25,46 +28,66 @@ class _WritePageState extends State<WritePage> {
 
     setState(() => isLoading = true);
 
-    final response = await http.post(
-      Uri.parse(
-        'https://safespace-backend-z4d6.onrender.com/report',
-      ),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'report_text': reportController.text,
-        'support_requested': wantCounsellor,
-      }),
-    );
-
-    setState(() => isLoading = false);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Report Submitted'),
-          content: Text(
-            'Your case ID is:\n\n${data['case_id']}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                reportController.clear();
-                wantCounsellor = false;
-                setState(() {});
-                Navigator.pop(context);
-              },
-              child: const Text('OK'),
-            ),
-          ],
+    try {
+      final response = await http.post(
+        Uri.parse(
+          'https://safespace-backend-z4d6.onrender.com/report',
         ),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'report_text': reportController.text.trim(),
+          'support_requested': wantCounsellor,
+        }),
       );
-    } else {
+
+      setState(() => isLoading = false);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final caseId = data['case_id'];
+
+        // ✅ Save case ID locally
+        await ReportStorage.saveNewReport(caseId);
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            title: const Text('Report Submitted'),
+            content: Text(
+              'Your case ID is:\n\n$caseId',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  reportController.clear();
+                  wantCounsellor = false;
+
+                  Navigator.pop(context); // close dialog
+
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ReportsOverviewPage(),
+                    ),
+                  );
+
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Submission failed')),
+        );
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Submission failed')),
+        const SnackBar(content: Text('Network error, try again')),
       );
     }
   }
@@ -192,8 +215,13 @@ class _WritePageState extends State<WritePage> {
                       ),
                     ),
                     child: isLoading
-                        ? const CircularProgressIndicator(
-                      color: Colors.white,
+                        ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     )
                         : const Text('Submit'),
                   ),
