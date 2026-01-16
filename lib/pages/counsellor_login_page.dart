@@ -1,8 +1,60 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'counsellor_home_page.dart';
 
-class CounsellorLoginPage extends StatelessWidget {
+class CounsellorLoginPage extends StatefulWidget {
   const CounsellorLoginPage({super.key});
+
+  @override
+  State<CounsellorLoginPage> createState() => _CounsellorLoginPageState();
+}
+
+class _CounsellorLoginPageState extends State<CounsellorLoginPage> {
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  bool loading = false;
+  String error = '';
+
+  Future<void> loginCounsellor() async {
+    setState(() {
+      loading = true;
+      error = '';
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse(
+          'https://safespace-backend-z4d6.onrender.com/counsellor/login',
+        ),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': emailController.text.trim(),
+          'password': passwordController.text.trim(),
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const CounsellorHomePage(),
+          ),
+        );
+      } else {
+        setState(() {
+          error = 'Invalid email or password';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        error = 'Network error';
+      });
+    }
+
+    setState(() => loading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +87,7 @@ class CounsellorLoginPage extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   TextField(
+                    controller: emailController,
                     decoration: const InputDecoration(
                       labelText: 'Email',
                       border: OutlineInputBorder(),
@@ -43,28 +96,32 @@ class CounsellorLoginPage extends StatelessWidget {
                   const SizedBox(height: 16),
 
                   TextField(
+                    controller: passwordController,
                     obscureText: true,
                     decoration: const InputDecoration(
                       labelText: 'Password',
                       border: OutlineInputBorder(),
                     ),
                   ),
+
+                  if (error.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      error,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ],
+
                   const SizedBox(height: 20),
 
                   ElevatedButton(
-                    onPressed: () {
-                      // ✅ Redirect to Counsellor Dashboard
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CounsellorHomePage(),
-                        ),
-                      );
-                    },
+                    onPressed: loading ? null : loginCounsellor,
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 45),
                     ),
-                    child: const Text('Login'),
+                    child: loading
+                        ? const CircularProgressIndicator()
+                        : const Text('Login'),
                   ),
                 ],
               ),

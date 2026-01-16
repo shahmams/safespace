@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'heatmap_page.dart';
+
 import 'admin_tabs/active_reports_tab.dart';
+import 'admin_tabs/admin_past_tab.dart';
+import 'admin_tabs/admin_spam_tab.dart';
 
 class AdminHomePage extends StatelessWidget {
   const AdminHomePage({super.key});
@@ -18,8 +21,8 @@ class AdminHomePage extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // close dialog
-              Navigator.pop(context); // logout
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
             child: const Text(
               'Logout',
@@ -54,27 +57,12 @@ class AdminHomePage extends StatelessWidget {
           ),
         ),
 
-        // ---------------- TAB CONTENT ----------------
-        body: const TabBarView(
+        // ✅ CONNECTED TABS
+        body: TabBarView(
           children: [
-            // ✅ ACTIVE REPORTS (CONNECTED)
-            ActiveReportsTab(),
-
-            // ⏳ PAST REPORTS (later)
-            Center(
-              child: Text(
-                'Past Reports',
-                style: TextStyle(fontSize: 18),
-              ),
-            ),
-
-            // ⏳ SPAM REPORTS (later)
-            Center(
-              child: Text(
-                'Spam Reports',
-                style: TextStyle(fontSize: 18),
-              ),
-            ),
+            AdminActiveTab(),
+            AdminPastTab(),
+            AdminSpamTab(),
           ],
         ),
 
@@ -92,7 +80,7 @@ class AdminHomePage extends StatelessWidget {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {}, // already on home
+                  onPressed: () {},
                   icon: const Icon(Icons.home),
                   label: const Text('Home'),
                   style: ElevatedButton.styleFrom(
@@ -116,11 +104,6 @@ class AdminHomePage extends StatelessWidget {
                   },
                   icon: const Icon(Icons.map),
                   label: const Text('Heatmaps'),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
                 ),
               ),
             ],

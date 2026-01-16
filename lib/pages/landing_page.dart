@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'write_page.dart';
 import 'admin_login_page.dart';
 import 'reports_overview_page.dart';
-import '../utils/anon_storage.dart';
+import 'package:safespacee/utils/anon_id_storage.dart';
+
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -22,7 +23,7 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   Future<void> _checkAnon() async {
-    final anonId = await AnonStorage.getAnonId();
+    final anonId = await AnonIdStorage.getOrCreateAnonId();
     if (!mounted) return;
 
     setState(() {

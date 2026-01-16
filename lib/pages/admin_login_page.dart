@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'admin_home_page.dart';
+import 'counsellor_login_page.dart'; // ✅ ADD THIS
 
 class AdminLoginPage extends StatefulWidget {
   const AdminLoginPage({super.key});
@@ -138,6 +139,28 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                       : const Text('Login'),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ✅ COUNSELLOR LOGIN LINK
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CounsellorLoginPage(),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'Counsellor Login',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.w500,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
               ),
             ],

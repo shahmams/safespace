@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../utils/anon_storage.dart';
+
 import 'reports_overview_page.dart';
+import 'package:safespacee/utils/anon_id_storage.dart';
 
 class WritePage extends StatefulWidget {
   const WritePage({super.key});
@@ -28,9 +29,10 @@ class _WritePageState extends State<WritePage> {
     setState(() => isLoading = true);
 
     try {
-      // 🔹 Get anonymous ID
-      final anonId = await AnonStorage.getAnonId();
+      // ✅ STEP 1: Get or create anon_id (ONLY ONCE)
+      final anonId = await AnonIdStorage.getOrCreateAnonId();
 
+      // ✅ STEP 2: Send report to backend
       final response = await http.post(
         Uri.parse(
           'https://safespace-backend-z4d6.onrender.com/report',
@@ -66,6 +68,7 @@ class _WritePageState extends State<WritePage> {
 
                   Navigator.pop(context); // close dialog
 
+                  // ✅ Go to overview page
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
