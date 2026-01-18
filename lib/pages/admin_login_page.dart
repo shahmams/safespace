@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'admin_home_page.dart';
-import 'counsellor_login_page.dart'; // ✅ ADD THIS
+import 'counsellor_login_page.dart';
 
 class AdminLoginPage extends StatefulWidget {
   const AdminLoginPage({super.key});
@@ -26,12 +26,8 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
 
     try {
       final response = await http.post(
-        Uri.parse(
-          'https://safespace-backend-z4d6.onrender.com/admin/login',
-        ),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        Uri.parse('https://safespace-backend-z4d6.onrender.com/admin/login'),
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': emailController.text.trim(),
           'password': passwordController.text.trim(),
@@ -39,11 +35,6 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final token = data['token'];
-
-        debugPrint('ADMIN TOKEN: $token');
-
         if (!mounted) return;
 
         Navigator.pushReplacement(
@@ -78,92 +69,174 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEFEFEF),
-      body: Center(
-        child: Container(
-          width: 320,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Admin Login',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+      backgroundColor: Colors.white,
 
-              const SizedBox(height: 20),
+      // SCROLL FIX
+      body: SingleChildScrollView(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
 
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                ),
-              ),
+                // BIG TRANSPARENT HERO IMAGE
+                Image.asset(
+                  "assets/admin_placeholder.png", // make sure this path is correct
+                  height: 300,
 
-              const SizedBox(height: 12),
-
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              if (errorMessage.isNotEmpty)
-                Text(
-                  errorMessage,
-                  style: const TextStyle(color: Colors.red),
                 ),
 
-              const SizedBox(height: 12),
+                const SizedBox(height: 2),
 
-              SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: ElevatedButton(
-                  onPressed: isLoading ? null : loginAdmin,
-                  child: isLoading
-                      ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                      : const Text('Login'),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ✅ COUNSELLOR LOGIN LINK
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const CounsellorLoginPage(),
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Counsellor Login',
+                const Text(
+                  "Admin Portal",
                   style: TextStyle(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.w500,
-                    decoration: TextDecoration.underline,
+                    fontSize: 36,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF2C3E50),
                   ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 8),
+
+                const Text(
+                  "Secure access to management panel",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF7F8C8D),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // LOGIN CARD
+                Container(
+                  width: 420,
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 25,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+
+                      // EMAIL FIELD
+                      TextField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: "Email Address",
+                          hintText: "admin@email.com",
+                          prefixIcon: const Icon(
+                            Icons.email_outlined,
+                            color: Color(0xFFFF6B81),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFF8F9FA),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // PASSWORD FIELD
+                      TextField(
+                        controller: passwordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: "Password",
+                          prefixIcon: const Icon(
+                            Icons.lock_outline,
+                            color: Color(0xFFFF6B81),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFF8F9FA),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      if (errorMessage.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            errorMessage,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+
+                      // LOGIN BUTTON
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : loginAdmin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF6B81),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: isLoading
+                              ? const CircularProgressIndicator(color: Colors.white)
+                              : const Text(
+                            "Login",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // SWITCH LOGIN
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CounsellorLoginPage(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.switch_account),
+                        label: const Text("Switch to Counsellor Login"),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFFFF6B81),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                const Text(
+                  "For authorized personnel only",
+                  style: TextStyle(
+                    color: Color(0xFF95A5A6),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
