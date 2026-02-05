@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'chat_page.dart';
 
 class AdminReportDetailPage extends StatefulWidget {
   final String caseId;
@@ -639,6 +640,76 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
               ),
 
             const SizedBox(height: 20),
+            // -------------------------
+// CHAT SECTION (ADMIN ↔ USER)
+// -------------------------
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.blue.shade100),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.chat_bubble_outline, color: Colors.blue.shade700),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Admin ↔ User Communication',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    isClosed
+                        ? 'This case is closed. Chat is available in read-only mode.'
+                        : 'Use this chat to follow up with the user regarding this case.',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.chat),
+                      label: const Text('Open Chat'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatPage(
+                              caseId: report!['case_id'],
+                              isAdmin: true,
+                              isCounsellor: false,
+                              isAdminChat: true,
+                              isClosed: isClosed,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           ],
         ),
       ),
@@ -806,6 +877,7 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
         ),
       );
     }
+
 
     return Container(
       padding: const EdgeInsets.all(20),

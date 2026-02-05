@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'counsellor_chat.dart';
+import 'chat_page.dart';
+
+
 
 class CounsellorReportDetailPage extends StatefulWidget {
   final String caseId;
@@ -100,7 +104,26 @@ class _CounsellorReportDetailPageState
                 child: const Text("Start Counselling"),
               ),
 
-            if (status == 'IN_PROGRESS')
+            if (status == 'IN_PROGRESS') ...[
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatPage(
+                        caseId: widget.caseId,
+                        isAdmin: false,
+                        isCounsellor: true,
+                        isAdminChat: false,
+                        isClosed: false,
+                      ),
+
+                    ),
+                  );
+                },
+                child: const Text("Open Chat"),
+              ),
+              const SizedBox(height: 12),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
@@ -108,6 +131,8 @@ class _CounsellorReportDetailPageState
                 onPressed: () => _postAction('close'),
                 child: const Text("Close Counselling"),
               ),
+            ],
+
           ],
         ),
       ),

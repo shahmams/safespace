@@ -1,6 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:http/http.dart' as http; // for anon_id storage (web)
+import 'chat_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// chat screen
+
+
 
 class UserReportDetailPage extends StatefulWidget {
   final String caseId;
@@ -97,6 +103,7 @@ class _UserReportDetailPageState extends State<UserReportDetailPage> {
         color = Colors.grey.shade600;
         icon = Icons.check_circle_outline;
         break;
+
       default:
         color = Colors.blue.shade600;
         icon = Icons.info_outline;
@@ -436,6 +443,175 @@ class _UserReportDetailPageState extends State<UserReportDetailPage> {
             _buildActionSection(),
 
             const SizedBox(height: 40),
+            // -------------------------
+// CHAT SECTION (USER ↔ ADMIN)
+// -------------------------
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.blue.shade100),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.chat_bubble_outline, color: Colors.blue.shade700),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Messages from Admin',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    report!['case_status'] == 'CLOSED'
+                        ? 'This case is closed. You can view messages but cannot send new ones.'
+                        : 'You can communicate securely with the admin regarding this report.',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.chat),
+                      label: const Text('Open Chat'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final prefs = await SharedPreferences.getInstance();
+                        final anonId = prefs.getString('anon_id');
+
+                        if (anonId == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Session expired. Please reopen the app."),
+                            ),
+                          );
+                          return;
+                        }
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatPage(
+                              caseId: widget.caseId,
+                              anonId: anonId, // 🔥 THIS FIXES EVERYTHING
+                              isAdmin: false,
+                              isCounsellor: false,
+                              isAdminChat: true,
+                              isClosed: report!['case_status'] == 'CLOSED',
+                            ),
+                          ),
+                        );
+                      },
+
+
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+// -------------------------
+// CHAT SECTION (USER ↔ COUNSELLOR)
+// -------------------------
+            if (report!['support_status'] == 'IN_PROGRESS')
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.green.shade100),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.psychology, color: Colors.green.shade700),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Counsellor Chat',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'You can privately chat with your assigned counsellor.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.chat),
+                        label: const Text('Chat with Counsellor'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () async {
+                          final prefs = await SharedPreferences.getInstance();
+                          final anonId = prefs.getString('anon_id');
+
+                          if (anonId == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content:
+                                Text("Session expired. Please reopen the app."),
+                              ),
+                            );
+                            return;
+                          }
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatPage(
+                                caseId: widget.caseId,
+                                anonId: anonId,
+                                isAdmin: false,
+                                isCounsellor: false,
+                                isAdminChat: false,
+                                isClosed: false,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
           ],
         ),
       ),
@@ -684,5 +860,7 @@ class _UserReportDetailPageState extends State<UserReportDetailPage> {
       default:
         return const SizedBox();
     }
+
   }
+
 }

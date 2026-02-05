@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'counsellor_report_detail_page.dart';
+import 'counsellor_chat.dart';
 
 class CounsellorHomePage extends StatefulWidget {
   const CounsellorHomePage({super.key});
@@ -252,17 +253,18 @@ class _CounsellorHomePageState extends State<CounsellorHomePage> {
                 elevation: 2,
                 shadowColor: Colors.black12,
                 child: InkWell(
-                  onTap: () async {
-                    await Navigator.push(
+                  onTap: () {
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => CounsellorReportDetailPage(
-                          caseId: caseId,
+                          caseId: report['case_id'],
                         ),
                       ),
                     );
-                    fetchReports();
                   },
+
+
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                     padding: const EdgeInsets.all(18),
