@@ -34,7 +34,7 @@ dependencies:
   http: ^1.2.0
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.2.2
-
+  flutter_svg: ^2.0.7
 
 dev_dependencies:
   flutter_test:
@@ -59,7 +59,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/admin_placeholder.png
-
+    - assets/map/lbs.svg
 
   # To add assets to your application, add an assets section, like this:
   # assets:
