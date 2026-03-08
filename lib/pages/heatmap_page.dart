@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_svg/flutter_svg.dart';
+import 'admin_report_detail_page.dart';
 
 class HeatmapReport {
   final String caseId;
@@ -56,6 +57,8 @@ class _HeatmapPageState extends State<HeatmapPage> {
   bool loading = true;
   List<HeatmapReport> reports = [];
   String? selectedZone;
+  String? hoveredZone;
+  Offset? hoverPosition;
   String selectedDateFilter = "ALL";
   String selectedSeverity = "ALL";
   String selectedCategory = "ALL";
@@ -132,6 +135,100 @@ class _HeatmapPageState extends State<HeatmapPage> {
 
   String formatDate(DateTime date) {
     return "${date.day}/${date.month}/${date.year}";
+  }
+  void showReportSummary() {
+
+    List<HeatmapReport> filtered = reports.where((r) {
+
+      if (selectedSeverity != "ALL" && r.severity != selectedSeverity) {
+        return false;
+      }
+
+      if (selectedCategory != "ALL" && r.category != selectedCategory) {
+        return false;
+      }
+
+      if (selectedDateFilter != "ALL") {
+        DateTime now = DateTime.now();
+
+        if (selectedDateFilter == "TODAY") {
+          if (r.createdAt.day != now.day ||
+              r.createdAt.month != now.month ||
+              r.createdAt.year != now.year) {
+            return false;
+          }
+        }
+
+        if (selectedDateFilter == "7DAYS") {
+          if (now.difference(r.createdAt).inDays > 7) {
+            return false;
+          }
+        }
+
+        if (selectedDateFilter == "30DAYS") {
+          if (now.difference(r.createdAt).inDays > 30) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+
+    }).toList();
+
+    final zoneReports =
+    filtered.where((r) => r.location == selectedZone).toList();
+
+    Map<String, int> categoryCount = {};
+    Map<String, int> severityCount = {};
+
+    for (var r in zoneReports) {
+      categoryCount[r.category] = (categoryCount[r.category] ?? 0) + 1;
+      severityCount[r.severity] = (severityCount[r.severity] ?? 0) + 1;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            selectedZone!.replaceAll("_", " ").toUpperCase(),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                Text("Reports: ${zoneReports.length}"),
+
+                const SizedBox(height: 10),
+
+                const Text(
+                  "By Category",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+
+                ...categoryCount.entries.map(
+                      (e) => Text("${e.key}: ${e.value}"),
+                ),
+
+                const SizedBox(height: 10),
+
+                const Text(
+                  "By Severity",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+
+                ...severityCount.entries.map(
+                      (e) => Text("${e.key}: ${e.value}"),
+                ),
+
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
   Color getSeverityColor(String severity) {
     switch (severity) {
@@ -286,8 +383,8 @@ class _HeatmapPageState extends State<HeatmapPage> {
                       double width = zone.width / 1118 * mapWidth;
                       double height = zone.height / 737 * mapHeight;
 
-                      double x = left + width / 2;
-                      double y = top + height / 2;
+                      double x = left + width / 2 + (report.caseId.hashCode % 14 - 7);
+                      double y = top + height / 2 + (report.caseId.hashCode % 14 - 7);
 
                       return Positioned(
                         left: x - 4,
@@ -316,22 +413,125 @@ class _HeatmapPageState extends State<HeatmapPage> {
                       return Positioned(
                         left: left,
                         top: top,
-                        child: GestureDetector(
-                          onTap: () {
+                        child: MouseRegion(
+                          onHover: (event) {
                             setState(() {
-                              selectedZone = zone.id;
+                              hoveredZone = zone.id;
+                              hoverPosition = event.localPosition;
                             });
                           },
-                          child: Container(
-                            width: width,
-                            height: height,
-                            color: Colors.transparent,
+                          onExit: (_) {
+                            setState(() {
+                              hoveredZone = null;
+                              hoverPosition = null;
+                            });
+                          },
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                selectedZone = zone.id;
+                              });
+                            },
+                            child: Container(
+                              width: width,
+                              height: height,
+                              color: Colors.transparent,
+                            ),
                           ),
                         ),
                       );
 
                     }).toList(),
+                    if (hoveredZone != null)
+                      Builder(
+                        builder: (context) {
 
+                          final zone = zones.firstWhere(
+                                (z) => z.id == hoveredZone,
+                            orElse: () => Zone("", 0, 0, 0, 0),
+                          );
+
+                          double left = zone.x / 1118 * mapWidth;
+                          double top = zone.y / 737 * mapHeight;
+                          double width = zone.width / 1118 * mapWidth;
+                          double height = zone.height / 737 * mapHeight;
+
+                          double tooltipX = left + width / 2;
+                          double tooltipY = top - 40;
+
+                          final zoneReports = filteredReports
+                              .where((r) => r.location == hoveredZone)
+                              .toList();
+
+                          int total = zoneReports.length;
+
+                          int categoryCount = zoneReports
+                              .where((r) => r.category == selectedCategory)
+                              .length;
+
+                          int severityCount = zoneReports
+                              .where((r) => r.severity == selectedSeverity)
+                              .length;
+
+                          return Positioned(
+                            left: tooltipX,
+                            top: tooltipY,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.85),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+
+                                  Text(
+                                    hoveredZone!.replaceAll("_", " ").toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+
+                                  if (total > 0)
+                                    Text(
+                                      "Reports: $total",
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+
+                                  if (total > 0 &&
+                                      selectedCategory != "ALL" &&
+                                      selectedSeverity == "ALL")
+                                    Text(
+                                      "$selectedCategory: $categoryCount",
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+
+                                  if (total > 0 &&
+                                      selectedSeverity != "ALL" &&
+                                      selectedCategory == "ALL")
+                                    Text(
+                                      "$selectedSeverity: $severityCount",
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                   ],
                 );
 
@@ -343,13 +543,37 @@ class _HeatmapPageState extends State<HeatmapPage> {
                 children: [
 
                   Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Text(
-                      selectedZone!.replaceAll("_", " ").toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+
+                        Text(
+                          "${selectedZone!.replaceAll("_", " ").toUpperCase()} "
+                              "(${filteredReports.where((r) => r.location == selectedZone).length} cases)",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            minimumSize: const Size(0, 30),
+                          ),
+                          onPressed: () {
+                            showReportSummary();
+                          },
+                          child: const Text(
+                            "View Reports",
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+
+                      ],
                     ),
                   ),
 
@@ -358,60 +582,69 @@ class _HeatmapPageState extends State<HeatmapPage> {
     physics: const NeverScrollableScrollPhysics(),
     children: filteredReports
                           .where((r) => r.location == selectedZone)
-                          .map((r) => Card(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                            children: [
+        .map((r) => InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AdminReportDetailPage(
+              caseId: r.caseId,
+            ),
+          ),
+        );
+      },
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
 
-                              Text(
-                                r.caseId,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+              Text(
+                r.caseId,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
 
-                              const SizedBox(height: 6),
+              const SizedBox(height: 6),
 
-                              Text(r.reportText),
+              Text(r.reportText),
 
-                              const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-                              Row(
-                                children: [
+              Row(
+                children: [
 
-                                  Text(
-                                    r.category,
-                                    style: const TextStyle(
-                                        fontSize: 12),
-                                  ),
+                  Text(
+                    r.category,
+                    style: const TextStyle(fontSize: 12),
+                  ),
 
-                                  const SizedBox(width: 10),
+                  const SizedBox(width: 10),
 
-                                  Text(
-                                    r.severity,
-                                    style: const TextStyle(
-                                        fontSize: 12),
-                                  ),
+                  Text(
+                    r.severity,
+                    style: const TextStyle(fontSize: 12),
+                  ),
 
-                                  const Spacer(),
+                  const Spacer(),
 
-                                  Text(
-                                    formatDate(r.createdAt),
-                                    style: const TextStyle(
-                                        fontSize: 12),
-                                  ),
-                                ],
-                              )
-                            ],
-                          ),
-                        ),
-                      ))
-                          .toList(),
+                  Text(
+                    formatDate(r.createdAt),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+
+                ],
+              )
+
+            ],
+          ),
+        ),
+      ),
+    ))
+        .toList(),
                     ),
                 ],
               ),
