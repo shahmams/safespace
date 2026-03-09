@@ -138,7 +138,33 @@ class _WritePageState extends State<WritePage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
         final caseId = data['case_id'];
+        final emergency = data['emergency_alert'] ?? false;
+
+        if (emergency) {
+          await showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Text("🚨 Emergency Report Sent"),
+              content: const Text(
+                  "Your emergency report has been successfully sent.\n\n"
+                      "Campus safety authorities have been notified.\n\n"
+                      "If you are in immediate danger:\n"
+                      "📞 Call Campus Security: XXXXXXXX"
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("OK"),
+                )
+              ],
+            ),
+          );
+        }
+
+
+
 
         // Success dialog
         await showDialog(

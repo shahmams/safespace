@@ -13,10 +13,12 @@ class AdminActiveTab extends StatefulWidget {
 class _AdminActiveTabState extends State<AdminActiveTab> with TickerProviderStateMixin {
   bool loading = true;
   bool refreshing = false;
+  bool emergencyShown = false;
   List reports = [];
   String selectedCategory = "ALL";
   String selectedSeverity = "ALL";
   String selectedSort = "PRIORITY";
+  String? lastEmergencyCaseId;
 
   // Animation controllers - declare them but initialize in initState
   late AnimationController _fadeController;
@@ -26,20 +28,99 @@ class _AdminActiveTabState extends State<AdminActiveTab> with TickerProviderStat
   void initState() {
     super.initState();
 
-    // Initialize animations first
+    // Initialize animations
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+
     _fadeAnimation = CurvedAnimation(
       parent: _fadeController,
       curve: Curves.easeInOut,
     );
 
-    // Then fetch data
+    // Fetch reports
     fetchActiveReports();
-  }
 
+    // Start emergency polling
+    startEmergencyPolling();
+  }
+  void startEmergencyPolling() {
+    Future.doWhile(() async {
+
+      await Future.delayed(const Duration(seconds: 5));
+
+      if (!mounted) return false;
+
+      await checkEmergencyAlert();
+
+      return true;
+
+    });
+  }
+  Future<void> checkEmergencyAlert() async {
+    try {
+
+      final response = await http.get(
+        Uri.parse(
+            "https://safespace-backend-z4d6.onrender.com/admin/emergency-alert"
+        ),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data["alert"] == true) {
+
+
+        final caseId = data["case"]["case_id"];
+
+        // prevent repeat popup
+        if (lastEmergencyCaseId == caseId) return;
+
+        lastEmergencyCaseId = caseId;
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            title: const Text("🚨 CRITICAL EMERGENCY"),
+            content: Text(
+                "Emergency reported at\n${data["case"]["location"].toString().replaceAll("_", " ").toUpperCase()}"
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () async {
+
+                  await http.post(
+                    Uri.parse(
+                        "https://safespace-backend-z4d6.onrender.com/admin/emergency-seen/$caseId"
+                    ),
+                  );
+
+                  Navigator.pop(context);
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AdminReportDetailPage(
+                        caseId: caseId,
+                      ),
+                    ),
+                  );
+
+                },
+                child: const Text("VIEW"),
+              )
+            ],
+          ),
+        );
+
+      }
+
+    } catch (e) {
+      debugPrint("Emergency check failed: $e");
+    }
+  }
   @override
   void dispose() {
     _fadeController.dispose(); // Dispose the controller
