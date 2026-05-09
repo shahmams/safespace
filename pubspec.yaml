@@ -34,7 +34,19 @@ dependencies:
   http: ^1.2.0
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.2.2
+  connectivity_plus: ^5.0.1
+  image_picker: ^1.0.4
+  record: ^6.0.0
+  video_player: ^2.8.1
+  flutter_image_compress: ^2.0.4
+  just_audio: ^0.9.36
+  audioplayers: ^5.2.1
+  path_provider: ^2.1.2
   flutter_svg: ^2.0.7
+  url_launcher: ^6.3.2
+
+
+
 
 dev_dependencies:
   flutter_test:
@@ -60,6 +72,7 @@ flutter:
   assets:
     - assets/admin_placeholder.png
     - assets/map/lbs.svg
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:

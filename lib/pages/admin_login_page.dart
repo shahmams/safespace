@@ -26,7 +26,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://safespace-backend-z4d6.onrender.com/admin/login'),
+        Uri.parse('https://safespace-jauf.onrender.com/admin/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': emailController.text.trim(),

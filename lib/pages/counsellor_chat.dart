@@ -22,7 +22,7 @@ class _CounsellorChatPageState extends State<CounsellorChatPage> {
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
 
-  final String baseUrl = "https://safespace-backend-z4d6.onrender.com";
+  final String baseUrl = "https://safespace-jauf.onrender.com";
 
   List<CaseMessage> _messages = [];
   bool _loading = true;

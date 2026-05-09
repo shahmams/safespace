@@ -63,7 +63,7 @@ class _AdminActiveTabState extends State<AdminActiveTab> with TickerProviderStat
 
       final response = await http.get(
         Uri.parse(
-            "https://safespace-backend-z4d6.onrender.com/admin/emergency-alert"
+            "https://safespace-jauf.onrender.com/admin/emergency-alert"
         ),
       );
 
@@ -93,7 +93,7 @@ class _AdminActiveTabState extends State<AdminActiveTab> with TickerProviderStat
 
                   await http.post(
                     Uri.parse(
-                        "https://safespace-backend-z4d6.onrender.com/admin/emergency-seen/$caseId"
+                        "https://safespace-jauf.onrender.com/admin/emergency-seen/$caseId"
                     ),
                   );
 
@@ -164,7 +164,7 @@ class _AdminActiveTabState extends State<AdminActiveTab> with TickerProviderStat
 
     try {
       final response = await http.get(
-        Uri.parse('https://safespace-backend-z4d6.onrender.com/admin/reports/active'),
+        Uri.parse('https://safespace-jauf.onrender.com/admin/reports/active'),
       );
 
       final data = jsonDecode(response.body);

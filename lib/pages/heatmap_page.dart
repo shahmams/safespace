@@ -129,7 +129,7 @@ class _HeatmapPageState extends State<HeatmapPage> with SingleTickerProviderStat
     try {
       final response = await http.get(
         Uri.parse(
-          "https://safespace-backend-z4d6.onrender.com/admin/heatmap-reports",
+          "https://safespace-jauf.onrender.com/admin/heatmap-reports",
         ),
       );
 

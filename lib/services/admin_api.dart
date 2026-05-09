@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class AdminApi {
   static const String baseUrl =
-      'https://safespace-backend-z4d6.onrender.com';
+      'https://safespace-jauf.onrender.com';
 
   // -------------------------------
   // GET ACTIVE REPORTS

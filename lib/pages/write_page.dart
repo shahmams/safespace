@@ -1,10 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
 import 'reports_overview_page.dart';
 import 'package:safespacee/utils/anon_id_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:http_parser/http_parser.dart';
 
 class Zone {
   final String id;
@@ -15,6 +19,7 @@ class Zone {
 
   Zone(this.id, this.x, this.y, this.width, this.height);
 }
+
 class WritePage extends StatefulWidget {
   const WritePage({super.key});
 
@@ -31,8 +36,14 @@ class _WritePageState extends State<WritePage> {
   bool showMap = false;
   final TextEditingController reportController = TextEditingController();
   final FocusNode _textFocusNode = FocusNode();
-  final List<Zone> zones = [
+  File? selectedImage;
+  File? selectedVideo;
+  File? recordedAudio;
 
+  final ImagePicker _picker = ImagePicker();
+  final AudioRecorder _recorder = AudioRecorder();
+  bool isRecording = false;
+  final List<Zone> zones = [
     // VERY LARGE AREAS FIRST
     Zone("sevens_ground",351.61,369.74,182.78,166.03),
     Zone("football_ground",1012.97,532.99,101.85,199.52),
@@ -74,18 +85,84 @@ class _WritePageState extends State<WritePage> {
     Zone("electric_control_room",745.08,175.80,62.78,39.06),
     Zone("main_entrance",466.02,59.99,103.25,39.06),
     Zone("auditorium",85.11,189.75,72.55,59.99),
-
   ];
+
   void selectZone(String zone) {
     setState(() {
       selectedLocation = zone;
     });
   }
+
   @override
   void dispose() {
     reportController.dispose();
     _textFocusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> pickImage() async {
+    final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
+    if (file != null) {
+      setState(() {
+        selectedImage = File(file.path);
+      });
+    }
+  }
+
+  Future<void> pickVideo() async {
+    final XFile? file = await _picker.pickVideo(source: ImageSource.gallery);
+    if (file != null) {
+      setState(() {
+        selectedVideo = File(file.path);
+      });
+    }
+  }
+
+  void clearImage() {
+    setState(() {
+      selectedImage = null;
+    });
+  }
+
+  void clearVideo() {
+    setState(() {
+      selectedVideo = null;
+    });
+  }
+
+  void clearAudio() {
+    setState(() {
+      recordedAudio = null;
+    });
+  }
+
+  Future<void> startRecording() async {
+    if (await _recorder.hasPermission()) {
+      final directory = await getTemporaryDirectory();
+      final path = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      await _recorder.start(
+        const RecordConfig(),
+        path: path,
+      );
+
+      setState(() {
+        isRecording = true;
+      });
+    }
+  }
+
+  Future<void> stopRecording() async {
+    final path = await _recorder.stop();
+    if (path != null) {
+      final file = File(path);
+      if (await file.exists()) {
+        setState(() {
+          recordedAudio = file;
+          isRecording = false;
+        });
+      }
+    }
   }
 
   Future<void> submitReport() async {
@@ -117,14 +194,10 @@ class _WritePageState extends State<WritePage> {
     setState(() => isLoading = true);
 
     try {
-      // Get or create anon_id
       final anonId = await AnonIdStorage.getOrCreateAnonId();
 
-      // Send report to backend
       final response = await http.post(
-        Uri.parse(
-          'https://safespace-backend-z4d6.onrender.com/report',
-        ),
+        Uri.parse('https://safespace-jauf.onrender.com/report'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'anon_id': anonId,
@@ -138,35 +211,33 @@ class _WritePageState extends State<WritePage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         final caseId = data['case_id'];
-        final emergency = data['emergency_alert'] ?? false;
 
-        if (emergency) {
-          await showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text("🚨 Emergency Report Sent"),
-              content: const Text(
-                  "Your emergency report has been successfully sent.\n\n"
-                      "Campus safety authorities have been notified.\n\n"
-                      "If you are in immediate danger:\n"
-                      "📞 Call Campus Security: XXXXXXXX"
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("OK"),
-                )
-              ],
+        Future<void> uploadFile(File file) async {
+          var request = http.MultipartRequest(
+            'POST',
+            Uri.parse('https://safespace-jauf.onrender.com/report/$caseId/upload'),
+          );
+
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'file',
+              file.path,
+              filename: file.path.split('/').last,
             ),
           );
+
+          final response = await request.send();
+          if (response.statusCode != 200) {
+            final body = await response.stream.bytesToString();
+            debugPrint("Upload failed: $body");
+          }
         }
 
+        if (selectedImage != null) await uploadFile(selectedImage!);
+        if (selectedVideo != null) await uploadFile(selectedVideo!);
+        if (recordedAudio != null) await uploadFile(recordedAudio!);
 
-
-
-        // Success dialog
         await showDialog(
           context: context,
           barrierDismissible: false,
@@ -246,7 +317,6 @@ class _WritePageState extends State<WritePage> {
                       height: 1.5,
                     ),
                   ),
-
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
@@ -255,6 +325,10 @@ class _WritePageState extends State<WritePage> {
                       onPressed: () {
                         reportController.clear();
                         wantCounsellor = false;
+                        selectedLocation = null;
+                        selectedImage = null;
+                        selectedVideo = null;
+                        recordedAudio = null;
                         Navigator.pop(context);
                         Navigator.pushReplacement(
                           context,
@@ -456,8 +530,8 @@ class _WritePageState extends State<WritePage> {
             ),
 
             const SizedBox(height: 24),
-// ---------------- MAP PREVIEW ----------------
 
+            // ---------------- MAP PREVIEW ----------------
             const Text(
               'Campus Location (Optional)',
               style: TextStyle(
@@ -477,6 +551,13 @@ class _WritePageState extends State<WritePage> {
               },
               icon: const Icon(Icons.map),
               label: Text(showMap ? "Hide Map" : "Select Location on Map"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF6B81),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
 
             const SizedBox(height: 12),
@@ -494,77 +575,73 @@ class _WritePageState extends State<WritePage> {
             if (showMap)
               LayoutBuilder(
                 builder: (context, constraints) {
+                  double mapWidth = constraints.maxWidth;
+                  double mapHeight = mapWidth * (737 / 1118);
 
-                double mapWidth = constraints.maxWidth;
-                double mapHeight = mapWidth * (737 / 1118);
+                  return SizedBox(
+                    height: mapHeight,
+                    child: Stack(
+                      children: [
+                        SvgPicture.asset(
+                          'assets/map/lbs.svg',
+                          width: mapWidth,
+                          height: mapHeight,
+                          fit: BoxFit.fill,
+                        ),
 
-                return SizedBox(
-                  height: mapHeight,
-                  child: Stack(
-                    children: [
+                        ...zones.map((zone) {
+                          double left = zone.x / 1118 * mapWidth;
+                          double top = zone.y / 737 * mapHeight;
+                          double width = zone.width / 1118 * mapWidth;
+                          double height = zone.height / 737 * mapHeight;
 
-                      SvgPicture.asset(
-                        'assets/map/lbs.svg',
-                        width: mapWidth,
-                        height: mapHeight,
-                        fit: BoxFit.fill,
-                      ),
+                          return Positioned(
+                            left: left,
+                            top: top,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  selectedLocation = zone.id;
+                                  labelX = left + width / 2;
+                                  labelY = top - 30;
+                                });
+                              },
+                              child: Container(
+                                width: width,
+                                height: height,
+                                color: selectedLocation == zone.id
+                                    ? Colors.red.withOpacity(0.35)
+                                    : Colors.transparent,
+                              ),
+                            ),
+                          );
+                        }).toList(),
 
-                      ...zones.map((zone) {
-
-                        double left = zone.x / 1118 * mapWidth;
-                        double top = zone.y / 737 * mapHeight;
-                        double width = zone.width / 1118 * mapWidth;
-                        double height = zone.height / 737 * mapHeight;
-
-                        return Positioned(
-                          left: left,
-                          top: top,
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                selectedLocation = zone.id;
-
-                                labelX = left + width / 2;
-                                labelY = top - 30;
-                              });
-                            },
+                        if (selectedLocation != null && labelX != null && labelY != null)
+                          Positioned(
+                            left: labelX! - 50,
+                            top: labelY!,
                             child: Container(
-                              width: width,
-                              height: height,
-                              color: selectedLocation == zone.id
-                                  ? Colors.red.withOpacity(0.35)
-                                  : Colors.transparent,
-                            ),
-                          ),
-                        );
-
-                      }).toList(),
-                      if (selectedLocation != null && labelX != null && labelY != null)
-                        Positioned(
-                          left: labelX! - 50,
-                          top: labelY!,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black87,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              selectedLocation!.replaceAll("_", " ").toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black87,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                selectedLocation!.replaceAll("_", " ").toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                      ],
+                    ),
+                  );
+                },
+              ),
 
             if (selectedLocation != null)
               Container(
@@ -582,18 +659,14 @@ class _WritePageState extends State<WritePage> {
                       size: 18,
                       color: Color(0xFFFF6B81),
                     ),
-
                     const SizedBox(width: 6),
-
                     Text(
                       selectedLocation!.replaceAll("_", " ").toUpperCase(),
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-
                     const SizedBox(width: 10),
-
                     GestureDetector(
                       onTap: () {
                         setState(() {
@@ -603,14 +676,133 @@ class _WritePageState extends State<WritePage> {
                       child: const Icon(
                         Icons.close,
                         size: 16,
+                        color: Color(0xFFFF6B81),
                       ),
                     ),
                   ],
                 ),
               ),
 
+            const SizedBox(height: 24),
+
+            // ---------------- ATTACHMENTS ----------------
+            const Text(
+              'Add Evidence (Optional)',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2B2B2B),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // Attachment Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: _buildAttachmentButton(
+                    icon: Icons.image,
+                    label: 'Image',
+                    onPressed: pickImage,
+                    isSelected: selectedImage != null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildAttachmentButton(
+                    icon: Icons.videocam,
+                    label: 'Video',
+                    onPressed: pickVideo,
+                    isSelected: selectedVideo != null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildAttachmentButton(
+                    icon: isRecording ? Icons.stop : Icons.mic,
+                    label: isRecording ? 'Stop' : 'Voice',
+                    onPressed: isRecording ? stopRecording : startRecording,
+                    isSelected: recordedAudio != null || isRecording,
+                    isRecording: isRecording,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Selected Files Display with Deselect Option
+            if (selectedImage != null)
+              _buildFileTile(
+                icon: Icons.image,
+                fileName: selectedImage!.path.split('/').last,
+                fileSize: _getFileSize(selectedImage!),
+                onDeselect: clearImage,
+                color: Colors.blue,
+              ),
+
+            if (selectedVideo != null)
+              _buildFileTile(
+                icon: Icons.videocam,
+                fileName: selectedVideo!.path.split('/').last,
+                fileSize: _getFileSize(selectedVideo!),
+                onDeselect: clearVideo,
+                color: Colors.purple,
+              ),
+
+            if (recordedAudio != null)
+              _buildFileTile(
+                icon: Icons.audio_file,
+                fileName: 'Voice Recording',
+                fileSize: _getFileSize(recordedAudio!),
+                onDeselect: clearAudio,
+                color: Colors.orange,
+              ),
+
+            if (isRecording)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const IgnorePointer(),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Recording in progress...',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             const SizedBox(height: 24),
+
             // Counsellor Section
             Container(
               padding: const EdgeInsets.all(20),
@@ -760,5 +952,109 @@ class _WritePageState extends State<WritePage> {
         ),
       ),
     );
+  }
+
+  Widget _buildAttachmentButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    required bool isSelected,
+    bool isRecording = false,
+  }) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isRecording
+            ? Colors.red
+            : isSelected
+            ? const Color(0xFFFF6B81)
+            : Colors.grey.shade100,
+        foregroundColor: isRecording || isSelected ? Colors.white : Colors.grey.shade700,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFileTile({
+    required IconData icon,
+    required String fileName,
+    required String fileSize,
+    required VoidCallback onDeselect,
+    required Color color,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fileName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  fileSize,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: onDeselect,
+            icon: const Icon(Icons.close, size: 18),
+            color: Colors.grey.shade600,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getFileSize(File file) {
+    int bytes = file.lengthSync();
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }

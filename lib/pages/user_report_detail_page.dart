@@ -32,7 +32,7 @@ class _UserReportDetailPageState extends State<UserReportDetailPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://safespace-backend-z4d6.onrender.com/admin/report/${widget.caseId}',
+          'https://safespace-jauf.onrender.com/admin/report/${widget.caseId}',
         ),
       );
 
@@ -58,7 +58,7 @@ class _UserReportDetailPageState extends State<UserReportDetailPage> {
     try {
       await http.post(
         Uri.parse(
-          'https://safespace-backend-z4d6.onrender.com/report/${widget.caseId}/accept-support',
+          'https://safespace-jauf.onrender.com/report/${widget.caseId}/accept-support',
         ),
       );
       // Show success message

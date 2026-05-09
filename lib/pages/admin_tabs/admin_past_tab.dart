@@ -30,7 +30,7 @@ class _AdminPastTabState extends State<AdminPastTab> {
 
     try {
       final response = await http.get(
-        Uri.parse('https://safespace-backend-z4d6.onrender.com/admin/reports/past'),
+        Uri.parse('https://safespace-jauf.onrender.com/admin/reports/past'),
       );
 
       final data = jsonDecode(response.body);

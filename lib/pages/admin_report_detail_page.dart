@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'chat_page.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 
 class AdminReportDetailPage extends StatefulWidget {
   final String caseId;
@@ -20,6 +22,7 @@ class AdminReportDetailPage extends StatefulWidget {
 class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
   bool loading = true;
   Map<String, dynamic>? report;
+  List attachments = [];
 
   @override
   void initState() {
@@ -29,14 +32,25 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
 
   Future<void> fetchReport() async {
     try {
-      final response = await http.get(
+
+      final reportResponse = await http.get(
         Uri.parse(
-          'https://safespace-backend-z4d6.onrender.com/admin/report/${widget.caseId}',
+          'https://safespace-jauf.onrender.com/admin/report/${widget.caseId}',
         ),
       );
 
-      final data = jsonDecode(response.body);
-      report = data['report'];
+      final attachmentResponse = await http.get(
+        Uri.parse(
+          'https://safespace-jauf.onrender.com/admin/report/${widget.caseId}/attachments',
+        ),
+      );
+
+      final reportData = jsonDecode(reportResponse.body);
+      final attachmentData = jsonDecode(attachmentResponse.body);
+
+      report = reportData['report'];
+      attachments = attachmentData['attachments'] ?? [];
+
     } catch (e) {
       debugPrint("Failed to load report: $e");
     }
@@ -44,11 +58,10 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
     if (!mounted) return;
     setState(() => loading = false);
   }
-
   Future<void> _postAction(String endpoint) async {
     await http.post(
       Uri.parse(
-        'https://safespace-backend-z4d6.onrender.com/admin/report/${widget.caseId}/$endpoint',
+        'https://safespace-jauf.onrender.com/admin/report/${widget.caseId}/$endpoint',
       ),
     );
     fetchReport();
@@ -57,7 +70,7 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
   Future<void> _closeReport() async {
     await http.post(
       Uri.parse(
-        'https://safespace-backend-z4d6.onrender.com/admin/report/${widget.caseId}/close',
+        'https://safespace-jauf.onrender.com/admin/report/${widget.caseId}/close',
       ),
     );
 
@@ -77,7 +90,7 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
   Future<void> _markNotSpam() async {
     await http.post(
       Uri.parse(
-        'https://safespace-backend-z4d6.onrender.com/admin/report/${widget.caseId}/mark-clean',
+        'https://safespace-jauf.onrender.com/admin/report/${widget.caseId}/mark-clean',
       ),
     );
 
@@ -484,6 +497,57 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
               ),
             ),
             const SizedBox(height: 30),
+            if (attachments.isNotEmpty) ...[
+              const SizedBox(height: 24),
+
+              const Text(
+                "Attachments",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              Column(
+                children: attachments.map((att) {
+
+                  final url =
+                      "https://safespace-jauf.onrender.com/attachment/${att['id']}";
+
+                  if (att['file_type'] == "image") {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Image.network(url),
+                    );
+                  }
+
+                  if (att['file_type'] == "video") {
+                    return ListTile(
+                      leading: const Icon(Icons.videocam),
+                      title: const Text("Video Attachment"),
+                      onTap: () {
+                        launchUrl(Uri.parse(url));
+                      },
+                    );
+                  }
+
+                  if (att['file_type'] == "audio") {
+                    return ListTile(
+                      leading: const Icon(Icons.mic),
+                      title: const Text("Voice Recording"),
+                      onTap: () {
+                        launchUrl(Uri.parse(url));
+                      },
+                    );
+                  }
+
+                  return const SizedBox();
+
+                }).toList(),
+              )
+            ],
 
             // -------------------------
             // SPAM MODERATION MODE

@@ -30,7 +30,7 @@ class _AdminSpamTabState extends State<AdminSpamTab> {
 
     try {
       final response = await http.get(
-        Uri.parse('https://safespace-backend-z4d6.onrender.com/admin/reports/spam'),
+        Uri.parse('https://safespace-jauf.onrender.com/admin/reports/spam'),
       );
 
       final data = jsonDecode(response.body);

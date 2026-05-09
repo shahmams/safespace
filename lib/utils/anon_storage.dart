@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 class AnonStorage {
   static const _key = "anon_id";
-  static const _backendUrl = "https://safespace-backend-z4d6.onrender.com";
+  static const _backendUrl = "https://safespace-jauf.onrender.com";
 
   /// Get anon_id from storage or backend
   static Future<String> getAnonId() async {

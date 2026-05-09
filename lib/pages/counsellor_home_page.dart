@@ -32,7 +32,7 @@ class _CounsellorHomePageState extends State<CounsellorHomePage> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://safespace-backend-z4d6.onrender.com/counsellor/reports',
+          'https://safespace-jauf.onrender.com/counsellor/reports',
         ),
       );
 

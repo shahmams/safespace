@@ -34,7 +34,7 @@ class _ReportsOverviewPageState extends State<ReportsOverviewPage> {
 
       final response = await http.get(
         Uri.parse(
-          'https://safespace-backend-z4d6.onrender.com/reports/by-anon/$anonId',
+          'https://safespace-jauf.onrender.com/reports/by-anon/$anonId',
         ),
       );
 
